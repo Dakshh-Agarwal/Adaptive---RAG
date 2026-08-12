@@ -15,8 +15,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
 
-# gemini-2.5-flash: latest free tier model, fast, supports structured output
+# gemini-1.5-flash: latest free tier model, fast, supports structured output
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash",
     temperature=0,
 )
