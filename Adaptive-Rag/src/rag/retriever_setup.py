@@ -12,8 +12,8 @@ from langchain_community.vectorstores import FAISS
 
 from src.core.config import settings
 
-# models/text-embedding-004 = Google's latest text embedding model, free tier
-embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+# models/gemini-embedding-001 = Google's recommended embedding model
+embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 # Global variable to store the FAISS vectorstore instance
 # This ensures get_retriever() can access documents stored by retriever_chain()
