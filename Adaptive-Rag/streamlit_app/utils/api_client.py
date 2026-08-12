@@ -4,8 +4,14 @@ API client for communicating with backend services.
 
 import logging
 import os
+from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
+
+# Load .env from the project root (two levels up from this file)
+_project_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_project_root / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +105,7 @@ def get_api_token() -> str:
         API token string if successful, None otherwise.
     """
     response = requests.post(f"{RUST_BASE_URL}/init")
-    logger.info("Calling /init, status code: %s", response.json())
+    logger.info("Calling /init, status code: %s", response.status_code)
 
     if response.status_code == 200:
         return response.json()["api_token"]
