@@ -1,0 +1,26 @@
+# Environment — NEVER commit API keys
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+*.egg-info/
+dist/
+build/
+.idea/
+*.log
+app.log
+description.txt
+
+# Node.js
+node_modules/
+
+# SQLite DB (auto-created at runtime)
+users.db
+
+# OS
+.DS_Store
+Thumbs.db
