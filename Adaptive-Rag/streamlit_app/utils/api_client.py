@@ -89,7 +89,7 @@ def login_user(username: str, password: str, api_token: str) -> dict:
         json={"username": username, "password": password},
         headers=headers,
     )
-    logger.info("Calling /login, status code: %s", response.json())
+    logger.info("Calling /login, status code: %s", response.status_code)
 
     if response.status_code == 200:
         return response.json()
