@@ -7,11 +7,15 @@ import os
 from pathlib import Path
 
 import requests
-from dotenv import load_dotenv
-
-# Load .env from the project root (two levels up from this file)
-_project_root = Path(__file__).resolve().parent.parent.parent
-load_dotenv(_project_root / ".env")
+try:
+    from dotenv import load_dotenv
+    # Load .env from the project root (two levels up from this file)
+    _project_root = Path(__file__).resolve().parent.parent.parent
+    load_dotenv(_project_root / ".env")
+except ImportError:
+    # On Streamlit Cloud, dotenv might not be installed. 
+    # That's fine, it uses st.secrets or cloud environment variables instead.
+    pass
 
 logger = logging.getLogger(__name__)
 
