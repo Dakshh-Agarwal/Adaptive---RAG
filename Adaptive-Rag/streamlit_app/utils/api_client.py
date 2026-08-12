@@ -10,8 +10,10 @@ import requests
 logger = logging.getLogger(__name__)
 
 # Backend service URLs
-RUST_BASE_URL = "http://localhost:8080/api"
-PYTHON_BASE_URL = "http://127.0.0.1:8000"
+# Set these as environment variables in production (Render, Streamlit Cloud secrets)
+# Falls back to localhost for local development
+RUST_BASE_URL = os.getenv("BFF_URL", "http://localhost:8080") + "/api"
+PYTHON_BASE_URL = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000")
 
 
 def create_user(username: str, password: str, api_token: str) -> bool:
