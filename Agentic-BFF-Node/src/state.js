@@ -15,7 +15,7 @@ const { MongoClient } = require("mongodb");
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key";
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://adaptive_rag_user:19aug2019@adaptive-rag.trgnb0j.mongodb.net/adaptive_rag?appName=adaptive-rag";
 const DB_NAME = "adaptive_rag";
 
 let db = null;
