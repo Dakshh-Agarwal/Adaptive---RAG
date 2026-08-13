@@ -59,6 +59,14 @@ def create_user(username: str, password: str, api_token: str) -> bool:
             except ValueError:
                 logger.warning("Create user returned non-JSON response")
             return True
+        elif response.status_code == 401:
+            try:
+                if response.json().get("error") == "Invalid API token":
+                    raise Exception("Invalid API token")
+            except ValueError:
+                pass
+            logger.error("Create user failed: %s - %s", response.status_code, response.text)
+            return False
         else:
             logger.error(
                 "Create user failed: %s - %s",
@@ -98,6 +106,12 @@ def login_user(username: str, password: str, api_token: str) -> dict:
     if response.status_code == 200:
         return response.json()
     elif response.status_code == 401:
+        try:
+            error_data = response.json()
+            if error_data.get("error") == "Invalid API token":
+                raise Exception("Invalid API token")
+        except ValueError:
+            pass # No JSON body, fallback to default 401 message
         raise Exception("Invalid username or password")
     else:
         raise Exception(f"Server error: {response.status_code}")

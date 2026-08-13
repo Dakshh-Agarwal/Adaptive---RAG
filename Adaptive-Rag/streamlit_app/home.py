@@ -56,7 +56,17 @@ if submit:
         st.error("Username and password required.")
     else:
         if mode == "Create Account":
-            success = create_user(username, password, st.session_state["session_id"])
+            try:
+                success = create_user(username, password, st.session_state["session_id"])
+            except Exception as e:
+                if str(e) == "Invalid API token":
+                    new_token = get_api_token()
+                    st.session_state["session_id"] = new_token
+                    success = create_user(username, password, new_token)
+                else:
+                    st.error(str(e))
+                    success = False
+            
             if success:
                 st.success("User created. Please log in.")
             else:
@@ -64,6 +74,15 @@ if submit:
         else:
             try:
                 response = login_user(username, password, st.session_state["session_id"])
+            except Exception as e:
+                if str(e) == "Invalid API token":
+                    new_token = get_api_token()
+                    st.session_state["session_id"] = new_token
+                    response = login_user(username, password, new_token)
+                else:
+                    raise e
+
+            try:
                 if response and response.get("jwt"):
                     st.session_state["jwt_token"] = response["jwt"]
                     st.session_state["username"] = username
