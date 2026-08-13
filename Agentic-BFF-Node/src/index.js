@@ -63,6 +63,27 @@ app.use("/api", jwtMiddleware);
 app.post("/api/create_user", createUser);
 app.post("/api/login", login);
 
+// TEMPORARY ENDPOINT FOR AUDIT VERIFICATION (To be removed after test)
+app.get("/api/verify_mongo", async (req, res) => {
+  try {
+    const state = require("./state");
+    const db = state.getDb();
+    if (!db) return res.status(500).json({ error: "No DB connection" });
+    
+    // Dump the raw document to prove it's in Atlas
+    const userDoc = await db.collection("users").findOne({ username: "test_live_user1" });
+    
+    // Redact password hash for safety
+    if (userDoc && userDoc.password_hash) {
+      userDoc.password_hash = "[REDACTED]";
+    }
+    
+    return res.status(200).json(userDoc);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Register chat route — protected by BOTH apiTokenMiddleware AND jwtMiddleware
 // Matches Rust: chat_controller::config → /api/chat
 app.post("/api/chat", chat);
