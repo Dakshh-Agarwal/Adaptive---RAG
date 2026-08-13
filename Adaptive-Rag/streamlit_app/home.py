@@ -62,13 +62,16 @@ if submit:
             else:
                 st.error("User creation failed.")
         else:
-            response = login_user(username, password, st.session_state["session_id"])
-            if response and response.get("jwt"):
-                st.session_state["jwt_token"] = response["jwt"]
-                st.session_state["username"] = username
-                st.switch_page("pages/chat.py")
-            else:
-                st.error("Login failed. Downstream API error: Received empty JWT token.")
+            try:
+                response = login_user(username, password, st.session_state["session_id"])
+                if response and response.get("jwt"):
+                    st.session_state["jwt_token"] = response["jwt"]
+                    st.session_state["username"] = username
+                    st.switch_page("pages/chat.py")
+                else:
+                    st.error("Login failed. Downstream API error: Received empty JWT token.")
+            except Exception as e:
+                st.error(str(e))
 
 # Debug logs section
 with st.expander("📜 Debug Logs"):

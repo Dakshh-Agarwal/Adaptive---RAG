@@ -1,29 +1,11 @@
 /**
  * controllers/userController.js
  *
- * Exact port of src/controllers/user_controller.rs
+ * Modified to use MongoDB (Atlas) for persistent data storage across restarts.
  *
  * Routes:
  *   POST /api/create_user  — create a new user (requires api_token, no JWT)
  *   POST /api/login        — authenticate user, returns JWT (requires api_token, no JWT)
- *
- * ─── create_user ───────────────────────────────────────────────────────────
- * Rust behavior:
- *   1. Hash the password with Argon2
- *   2. INSERT OR IGNORE into users table (rusqlite ignores duplicate via PRIMARY KEY)
- *   3. Return 200 { status: "created" }  (even on duplicate — Rust ignores the error with let _)
- *
- * Note: Rust code does `let _ = conn.execute(...)` which silently ignores conflicts.
- * We replicate this: use INSERT OR IGNORE in SQLite to silently skip duplicates.
- *
- * ─── login ────────────────────────────────────────────────────────────────
- * Rust behavior:
- *   1. SELECT password_hash FROM users WHERE username = ?
- *   2. If found and verify_password passes → generate_jwt → return { jwt: "<token>" }
- *   3. Else → 401 Unauthorized (empty body, matches Rust HttpResponse::Unauthorized().finish())
- *
- * JWT Claims: { sub: username, exp: now + 3600 }
- * JWT Algorithm: HS256 (Rust Header::default())
  */
 
 const state = require("../state");
@@ -32,9 +14,6 @@ const { hashPassword, verifyPassword, generateJwt } = require("../auth");
 /**
  * POST /api/create_user
  * Body: { username: string, password: string }
- *
- * Rust equivalent:
- *   async fn create_user(state, payload: Json<CreateUserRequest>) -> HttpResponse
  */
 async function createUser(req, res) {
   const { username, password } = req.body;
@@ -46,25 +25,35 @@ async function createUser(req, res) {
   const hashed = await hashPassword(password);
 
   console.info("Creating user:", username);
-  console.info("Hashed password:", hashed);
 
-  // Matches Rust: conn.execute("INSERT INTO users (username, password_hash) VALUES (?1, ?2)", ...)
-  // The Rust code ignores errors with `let _`, so we use INSERT OR IGNORE to handle duplicates silently
-  const stmt = state.db.prepare(
-    "INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)"
-  );
-  stmt.run(username, hashed);
+  try {
+    const db = state.getDb();
+    if (!db) {
+       return res.status(500).json({ error: "Database connection not initialized" });
+    }
+    
+    const users = db.collection("users");
+    
+    // Insert document into MongoDB
+    // Using try-catch to silently handle E11000 duplicate key errors (to match previous INSERT OR IGNORE behavior)
+    try {
+      await users.insertOne({ username, password_hash: hashed });
+    } catch (insertErr) {
+      if (insertErr.code !== 11000) {
+        throw insertErr; // Re-throw if it's not a duplicate key error
+      }
+    }
 
-  // Matches Rust: HttpResponse::Ok().json(json!({"status": "created"}))
-  return res.status(200).json({ status: "created" });
+    return res.status(200).json({ status: "created" });
+  } catch (err) {
+    console.error("Error creating user:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 /**
  * POST /api/login
  * Body: { username: string, password: string }
- *
- * Rust equivalent:
- *   async fn login(state, payload: Json<LoginRequest>) -> HttpResponse
  */
 async function login(req, res) {
   const { username, password } = req.body;
@@ -73,30 +62,34 @@ async function login(req, res) {
     return res.status(400).json({ error: "username and password are required" });
   }
 
-  // Matches Rust: conn.prepare("SELECT password_hash FROM users WHERE username=?1")
-  const stmt = state.db.prepare(
-    "SELECT password_hash FROM users WHERE username = ?"
-  );
-  const row = stmt.get(username);
-
-  if (row) {
-    const valid = await verifyPassword(password, row.password_hash);
-    if (valid) {
-      // Matches Rust: generate_jwt(&payload.username, &state.jwt_secret)
-      const jwtToken = generateJwt(username, state.jwtSecret);
-
-      console.info("Login successful for user:", username);
-
-      // Matches Rust: TokenResponse { api_token: None, jwt: Some(jwt) }
-      return res.status(200).json({
-        api_token: null,
-        jwt: jwtToken,
-      });
+  try {
+    const db = state.getDb();
+    if (!db) {
+       return res.status(500).json({ error: "Database connection not initialized" });
     }
-  }
+    
+    const users = db.collection("users");
+    const userDoc = await users.findOne({ username });
 
-  // Matches Rust: HttpResponse::Unauthorized().finish()
-  return res.status(401).end();
+    if (userDoc) {
+      const valid = await verifyPassword(password, userDoc.password_hash);
+      if (valid) {
+        const jwtToken = generateJwt(username, state.jwtSecret);
+
+        console.info("Login successful for user:", username);
+
+        return res.status(200).json({
+          api_token: null,
+          jwt: jwtToken,
+        });
+      }
+    }
+
+    return res.status(401).end();
+  } catch (err) {
+    console.error("Error logging in:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 module.exports = { createUser, login };

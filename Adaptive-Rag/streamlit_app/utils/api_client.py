@@ -97,8 +97,10 @@ def login_user(username: str, password: str, api_token: str) -> dict:
 
     if response.status_code == 200:
         return response.json()
-
-    return None
+    elif response.status_code == 401:
+        raise Exception("Invalid username or password")
+    else:
+        raise Exception(f"Server error: {response.status_code}")
 
 
 def get_api_token() -> str:
